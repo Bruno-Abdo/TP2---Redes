@@ -16,8 +16,8 @@ int server_sockaddr_init(const char *proto, const char *portstr,
 
 void zeroVector(int *vector);
 
-struct action{				//Estrutura da mensagem
-    int type;
-    int moves[100];
-    int board[10][10];
+struct sensor_message {
+    char type[12];
+    int coords[2];
+    float measurement;
 };

@@ -18,7 +18,7 @@ void usage(int argc, char **argv){
 
 int startConnection(int argc, char **argv, char *straddr)
 {
-    if(argc < 4){
+    if(argc < 3){
         usage(argc, argv);
     }
 
@@ -69,8 +69,18 @@ int main(int argc, char ** argv){
 
     int csock;
     char caddrstr[BUFSZ];
+    struct sensor_message Sensor;
+    int count = 0;
 
-     csock = startConnection(argc, argv, caddrstr);//Conecta ao cliente
+    csock = startConnection(argc, argv, caddrstr);//Conecta ao cliente
+
+    count = recv(csock,&Sensor,sizeof(Sensor),0); //Recebe Mensagens
+    if(count != sizeof(Sensor)){
+        logexit("recv");
+    }
     
+    printf("%s %i %i\n",Sensor.type, Sensor.coords[0],Sensor.coords[1]);
+
+
     return 0;
 }

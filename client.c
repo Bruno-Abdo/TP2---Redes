@@ -11,24 +11,29 @@
 
 #define BUFSZ 1024
 
-void usage(int argc, char **argv) //IVerifica a conexão do servidor
+void usage(char **argv) //IVerifica a conexão do servidor
 {
-	printf("usage: %s <server IP> <server port>\n", argv[0]);
-	printf("example: %s 127.0.0.1 51511\n", argv[0]);
+	printf("usage: %s <server IP> <port> -type <temperature|humidity|air_quality> -coords <x> <y>\n", argv[0]);
 	exit(EXIT_FAILURE);
 }
 
 int startConnection(int argc, char **argv, int s) //Implementa a conexão com o servidor socket() e connect()
 {
-	if (argc < 3)
+	if (argc < 8)
 	{
-		usage(argc, argv);
+        printf("Error: Invalid number of arguments\n");
+		usage(argv);
 	}
+    else if(strcmp(argv[3],"type") != 0){
+        printf("%s\n", argv[3]);
+        printf("Error: Expected'-type' argument\n");
+		usage(argv);
+    }
 
 	struct sockaddr_storage storage;
 	if (0 != addrparse(argv[1], argv[2], &storage))
 	{
-		usage(argc, argv);
+		usage(argv);
 	}
 
 	s = socket(storage.ss_family, SOCK_STREAM, 0);
@@ -47,10 +52,21 @@ int startConnection(int argc, char **argv, int s) //Implementa a conexão com o 
 
 int main(int argc, char **argv)
 {
-	int s;				// Inicialização do Socket
+	int s;
 	char buf[BUFSZ];
+    struct sensor_message Sensor;
+    int count = 0;
 
 	s = startConnection(argc, argv, s); // Faz socket(), bind(), listen() e accept()
 
+    strcpy(Sensor.type,argv[4]);
+    Sensor.coords[0] = argv[6][0] - 48;
+    Sensor.coords[1] = argv[7][0]- 48;
+
+    count = send(s, &Sensor, sizeof(Sensor), 0); // Envia comando star ao servidor
+	if (count != sizeof(Sensor))
+	{
+		logexit("send");
+	}
 
 }
