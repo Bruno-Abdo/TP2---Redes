@@ -16,8 +16,7 @@ void usage(int argc, char **argv){
     exit(EXIT_FAILURE);
 }
 
-int startConnection(int argc, char **argv, char *straddr)
-{
+int startConnection(int argc, char **argv, char *straddr){
     if(argc < 3){
         usage(argc, argv);
     }
@@ -52,8 +51,7 @@ int startConnection(int argc, char **argv, char *straddr)
     socklen_t caddrlen = sizeof(cstorage);
 
     int sock = accept(s, caddr, &caddrlen);
-    if (sock == -1)
-    {
+    if (sock == -1){
         logexit("accept");
     }
     printf("Client connected\n");
@@ -74,12 +72,22 @@ int main(int argc, char ** argv){
 
     csock = startConnection(argc, argv, caddrstr);//Conecta ao cliente
 
-    count = recv(csock,&Sensor,sizeof(Sensor),0); //Recebe Mensagens
-    if(count != sizeof(Sensor)){
-        logexit("recv");
+    while(1){
+        count = recv(csock,&Sensor,sizeof(Sensor),0); //Recebe Mensagens
+        if(count != sizeof(Sensor)){
+            logexit("recv");
+        }
+
+        printf("Medicao: %.2f Coordenadas: %i %i\n",Sensor.measurement, Sensor.coords[0],Sensor.coords[1]);
+        Sensor.coords[1]++;
+
+        count = send(csock, &Sensor, sizeof(Sensor), 0); // Envia comando star ao servidor
+        if (count != sizeof(Sensor)){
+            logexit("send");
+        }
     }
-    
-    printf("%s %i %i\n",Sensor.type, Sensor.coords[0],Sensor.coords[1]);
+
+   //printf("%s %i %i\n",Sensor.type, Sensor.coords[0],Sensor.coords[1]);
 
 
     return 0;
