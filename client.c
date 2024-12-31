@@ -81,10 +81,8 @@ int main(int argc, char **argv){
         base = 15;
         diferenca = 15;
     }
-
-
     while(1){
-
+        printf("Inicio\n");
         Sensor.measurement = (float)rand()/RAND_MAX;
         Sensor.measurement = base + Sensor.measurement * diferenca;
 
@@ -93,7 +91,9 @@ int main(int argc, char **argv){
             logexit("send");
         }
 
-        recv(s, &Sensor, sizeof(Sensor), 0); // Recebe os movimentos possíveis do jogador
+        printf("Enviado\n");
+
+        count = recv(s, &Sensor, sizeof(Sensor), 0); // Recebe os movimentos possíveis do jogador
         if (count != sizeof(Sensor)){
             logexit("recv");
         }

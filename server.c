@@ -6,6 +6,7 @@
 #include<unistd.h>
 #include<sys/socket.h>
 #include <sys/types.h>
+#include <sys/select.h>
 
 
 #define BUFSZ 1024
@@ -42,38 +43,64 @@ int startConnection(int argc, char **argv, char *straddr){
         logexit("bind");
     }
 
-    if(0 != listen(s, 10)){
+    if(0 != listen(s, 12)){
         logexit("listen");
     }
 
-    struct sockaddr_storage cstorage;
-    struct sockaddr *caddr = (struct sockaddr *)(&cstorage);
-    socklen_t caddrlen = sizeof(cstorage);
-
-    int sock = accept(s, caddr, &caddrlen);
-    if (sock == -1){
-        logexit("accept");
-    }
-    printf("Client connected\n");
-
-    char traddr[BUFSZ];
-    addrtostr(caddr, straddr, BUFSZ);
-
-    return sock;
+    return s;
 }
 
 
 int main(int argc, char ** argv){
 
-    int csock;
+    int csock, maxfd;
     char caddrstr[BUFSZ];
     struct sensor_message Sensor;
-    int count = 0;
+    struct sockaddr_storage cstorage;
+    socklen_t caddrlen = sizeof(cstorage);
 
     csock = startConnection(argc, argv, caddrstr);//Conecta ao cliente
+    struct sockaddr *caddr = (struct sockaddr *)(&cstorage);
+
+    int count = 0;
+    int sock[12];
+    int i = 0;
+    int this_sock;
+
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(csock, &readfds);  // Adiciona o socket de escuta ao conjunto
+
+    struct timeval timeout;
+    timeout.tv_sec = 1;  // Timeout de 1 segundo
+    timeout.tv_usec = 0;
 
     while(1){
-        count = recv(csock,&Sensor,sizeof(Sensor),0); //Recebe Mensagens
+
+        //printf("aqui\n");
+        //fd_set tmpfds = readfds;  // Cria um conjunto temporário
+        int activity = select(csock+1, &readfds, NULL, NULL, &timeout);      
+
+        if (activity < 0) {
+            perror("select");
+            exit(EXIT_FAILURE);
+            
+        }
+
+        if (FD_ISSET(csock, &readfds)) {
+            sock[i] = accept(csock, caddr, &caddrlen);
+            if (sock[i] == -1) { 
+                perror("accept");
+                continue;
+            }
+            i++;
+            printf("Client connected\n");
+        }
+
+        char traddr[BUFSZ];
+        addrtostr(caddr, caddrstr, BUFSZ);
+
+        count = recv(sock[i-1],&Sensor,sizeof(Sensor),0); //Recebe Mensagens
         if(count != sizeof(Sensor)){
             logexit("recv");
         }
@@ -81,10 +108,11 @@ int main(int argc, char ** argv){
         printf("Medicao: %.2f Coordenadas: %i %i\n",Sensor.measurement, Sensor.coords[0],Sensor.coords[1]);
         Sensor.coords[1]++;
 
-        count = send(csock, &Sensor, sizeof(Sensor), 0); // Envia comando star ao servidor
+        count = send(sock[i-1], &Sensor, sizeof(Sensor), 0); // Envia comando star ao servidor
         if (count != sizeof(Sensor)){
             logexit("send");
         }
+
     }
 
    //printf("%s %i %i\n",Sensor.type, Sensor.coords[0],Sensor.coords[1]);
